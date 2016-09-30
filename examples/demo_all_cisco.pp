@@ -40,6 +40,7 @@ class ciscopuppet::demo_all_cisco {
   include ciscopuppet::cisco::demo_ospf
   include ciscopuppet::cisco::demo_patching
   include ciscopuppet::cisco::demo_pim
+  include ciscopuppet::cisco::demo_plb
   include ciscopuppet::cisco::demo_portchannel
   include ciscopuppet::cisco::demo_snmp
   #stp_bd and stp_vlan are exclusive, so comment one of them
