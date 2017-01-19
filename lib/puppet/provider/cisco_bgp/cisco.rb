@@ -23,6 +23,13 @@ rescue LoadError # seen on master, not on agent
                                      'puppet_x', 'cisco', 'autogen.rb'))
 end
 
+begin
+  require 'puppet_x/cisco/cmnutils'
+rescue LoadError # seen on master, not on agent
+  # See longstanding Puppet issues #4248, #7316, #14073, #14149, etc. Ugh.
+  require File.expand_path(File.join(File.dirname(__FILE__), '..', '..', '..',
+                                     'puppet_x', 'cisco', 'cmnutils.rb'))
+end
 Puppet::Type.type(:cisco_bgp).provide(:cisco) do
   desc 'The cisco bgp provider.'
 
@@ -41,7 +48,9 @@ Puppet::Type.type(:cisco_bgp).provide(:cisco) do
     :confederation_peers,
     :event_history_cli,
     :event_history_detail,
+    :event_history_errors,
     :event_history_events,
+    :event_history_objstore,
     :event_history_periodic,
     :disable_policy_batching_ipv4,
     :disable_policy_batching_ipv6,
@@ -210,23 +219,105 @@ Puppet::Type.type(:cisco_bgp).provide(:cisco) do
   end
 
   def legacy_image?
+    utils = PuppetX::Cisco::Utils
     fd = Facter.value('cisco')
     image = fd['images']['system_image']
-    pid = fd['inventory']['chassis']['pid']
-    image[/7.0.3.I2|I3|I4/] || pid[/N(5|6|7|8)/]
+    image[/7.0.3.I2|I3|I4/] || utils.product_tag[/n(5k|6k|7k|9k-f)/]
+  end
+
+  def event_history_default?(prop)
+    @property_hash[prop.to_sym] == @bgp_vrf.send("default_#{prop}")
+  end
+
+  def event_history_false?(prop)
+    @property_hash[prop.to_sym] == 'false'
+  end
+
+  def event_history_cli
+    case resource[:event_history_cli]
+    when 'default'
+      return 'default' if event_history_default?('event_history_cli')
+    when 'true'
+      return 'true' if event_history_default?('event_history_cli')
+    when 'size_disable'
+      return 'size_disable' if
+        event_history_false?('event_history_cli') && !legacy_image?
+    end
+    @property_hash[:event_history_cli]
+  end
+
+  def event_history_cli=(should_value)
+    should_value = @bgp_vrf.default_event_history_cli if
+      should_value == 'default' || should_value == 'true'
+    should_value = should_value.to_sym unless should_value =~ /\A\d+\z/
+    @property_flush[:event_history_cli] = should_value
+  end
+
+  def event_history_detail
+    case resource[:event_history_detail]
+    when 'default'
+      return 'default' if event_history_default?('event_history_detail')
+    when 'size_disable'
+      return 'size_disable' if
+        event_history_default?('event_history_detail') && !legacy_image?
+    end
+    @property_hash[:event_history_detail]
+  end
+
+  def event_history_detail=(should_value)
+    should_value = @bgp_vrf.default_event_history_detail if
+      should_value == 'default'
+    should_value = @bgp_vrf.default_event_history_detail if
+      should_value == 'size_disable' && !legacy_image?
+    should_value = should_value.to_sym unless should_value =~ /\A\d+\z/
+    @property_flush[:event_history_detail] = should_value
+  end
+
+  def event_history_events
+    case resource[:event_history_events]
+    when 'default'
+      return 'default' if event_history_default?('event_history_events')
+    when 'true'
+      return 'true' if event_history_default?('event_history_events')
+    when 'size_disable'
+      return 'size_disable' if event_history_false?('event_history_events')
+    when 'size_large'
+      return 'size_large' if event_history_default?('event_history_events') &&
+                             !legacy_image?
+    end
+    @property_hash[:event_history_events]
+  end
+
+  def event_history_events=(should_value)
+    should_value = @bgp_vrf.default_event_history_events if
+      should_value == 'default' || should_value == 'true'
+    should_value = 'false' if should_value == 'size_disable' && !legacy_image?
+    should_value = 'true' if should_value == 'size_large' && !legacy_image?
+    should_value = should_value.to_sym unless should_value =~ /\A\d+\z/
+    @property_flush[:event_history_events] = should_value
   end
 
   def event_history_periodic
-    return 'default' if @property_hash[:event_history_periodic] == @bgp_vrf.default_event_history_periodic &&
-                        resource[:event_history_periodic] == 'default'
-    return 'true' if @property_hash[:event_history_periodic] == 'size_small' &&
-                     resource[:event_history_periodic] == 'true' && legacy_image?
+    case resource[:event_history_periodic]
+    when 'default'
+      return 'default' if event_history_default?('event_history_periodic')
+    when 'true'
+      return 'true' if event_history_default?('event_history_periodic') &&
+                       legacy_image?
+    when 'size_disable'
+      return 'size_disable' if
+        event_history_default?('event_history_periodic') && !legacy_image?
+    end
     @property_hash[:event_history_periodic]
   end
 
   def event_history_periodic=(should_value)
-    should_value = @bgp_vrf.default_event_history_periodic if should_value == 'default'
-    should_value = 'size_small' if should_value == 'true' && legacy_image?
+    should_value = @bgp_vrf.default_event_history_periodic if
+      should_value == 'default'
+    should_value = @bgp_vrf.default_event_history_periodic if
+      should_value == 'true' && legacy_image?
+    should_value = @bgp_vrf.default_event_history_periodic if
+      should_value == 'size_disable' && !legacy_image?
     should_value = should_value.to_sym unless should_value =~ /\A\d+\z/
     @property_flush[:event_history_periodic] = should_value
   end

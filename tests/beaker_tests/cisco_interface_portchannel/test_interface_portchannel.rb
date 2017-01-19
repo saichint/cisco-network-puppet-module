@@ -74,7 +74,7 @@ tests[:non_default_asym] = {
 tests[:default_sym] = {
   desc:           '1.2 Default Properties (sym)',
   title_pattern:  intf,
-  platform:       'n(3|8|9)k',
+  platform:       'n(3|9)k',
   code:           [0, 2],
   manifest_props: {
     bfd_per_link:              'default',
@@ -90,7 +90,7 @@ tests[:default_sym] = {
     'lacp_graceful_convergence' => 'true',
     'lacp_max_bundle'           => '32',
     'lacp_min_links'            => '1',
-    'lacp_suspend_individual'   => 'true',
+    'lacp_suspend_individual'   => platform[/n3k/] ? 'false' : 'true',
     'port_hash_distribution'    => 'false',
     'port_load_defer'           => 'false',
   },
@@ -99,13 +99,13 @@ tests[:default_sym] = {
 tests[:non_default_sym] = {
   desc:           '2.2 Non Default Properties (sym)',
   title_pattern:  intf,
-  platform:       'n(3|8|9)k',
+  platform:       'n(3|9)k',
   manifest_props: {
     bfd_per_link:              'true',
     lacp_graceful_convergence: 'false',
     lacp_max_bundle:           '10',
     lacp_min_links:            '3',
-    lacp_suspend_individual:   'false',
+    lacp_suspend_individual:   platform[/n3k/] ? 'true' : 'false',
     port_hash_distribution:    'fixed',
     port_load_defer:           'true',
   },
