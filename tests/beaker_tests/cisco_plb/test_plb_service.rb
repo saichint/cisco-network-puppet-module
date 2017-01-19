@@ -29,7 +29,7 @@ tests = {
   master:        master,
   agent:         agent,
   intf_type:     'ethernet',
-  platform:      'n(5|6|7)k',
+  platform:      'n(7|9)k$',
   resource_name: 'cisco_plb_service',
 }
 
@@ -177,6 +177,12 @@ def cleanup(agent)
          ].join(' ; ')
   test_set(agent, cmds)
   interface_cleanup(agent, @ingress_eth_int)
+end
+
+def unsupported_properties(_tests, _id)
+  unprops = []
+  unprops << :nat_destination if platform[/n9k$/]
+  unprops
 end
 
 # Overridden to properly handle dependencies for this test file.

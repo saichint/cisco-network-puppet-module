@@ -18,7 +18,12 @@
 
 class ciscopuppet::cisco::demo_plb {
 
-  if platform_get() =~ /n(5|6|7)k/ {
+  $nat_destination = platform_get() ? {
+    'n7k'  => false,
+    default => undef
+  }
+
+  if platform_get() =~ /n(7|9)k/ {
     cisco_plb_device_group {'icmpGroup':
       ensure           => 'present',
       probe_frequency  => 1800,
@@ -153,7 +158,7 @@ class ciscopuppet::cisco::demo_plb {
       load_bal_method_end_port      => 202,
       load_bal_method_proto         => 'udp',
       load_bal_method_start_port    => 101,
-      nat_destination               => false,
+      nat_destination               => $nat_destination,
       peer_local                    => 'pser1',
       shutdown                      => true,
       virtual_ip                    => $virtual_ip,

@@ -28,7 +28,7 @@ require File.expand_path('../../lib/utilitylib.rb', __FILE__)
 tests = {
   master:        master,
   agent:         agent,
-  platform:      'n(5|6|7)k',
+  platform:      'n(7|9)k$',
   resource_name: 'cisco_plb_device_group_node',
 }
 
